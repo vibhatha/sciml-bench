@@ -27,6 +27,11 @@ from tabulate import tabulate
 from threading import Timer
 from subprocess import Popen, PIPE
 
+class GPUtilException(Exception):
+    """
+    Exception defined for GPUtil
+    """
+    pass
 
 def format_bytes(n_bytes, suffix='B'):
     """
@@ -140,19 +145,26 @@ def disk_info(usage=True):
 def gpu_info(usage=True):
     """ gpu info """
     info_all = {'Num GPUs': 0}  # in case of no GPU
-    for i, gpu in enumerate(GPUtil.getGPUs()):
-        info = {'ID': gpu.id,
-                'UUID': gpu.uuid,
-                'Name': gpu.name,
-                'Serial': gpu.serial,
-                'Total memory': gpu.memoryTotal}
-        if usage:
-            info.update({'Free memory': f'{gpu.memoryFree} MB',
-                         'Used memory': f'{gpu.memoryUsed} MB',
-                         'Current load': f'{gpu.load * 100:.2f}%',
-                         'Temperature': f'{gpu.temperature}°C'})
-        info_all[f'GPU{i}'] = info
-    info_all['Num GPUs'] = len(info_all) - 1
+    try:
+        for i, gpu in enumerate(GPUtil.getGPUs()):
+            info = {'ID': gpu.id,
+                    'UUID': gpu.uuid,
+                    'Name': gpu.name,
+                    'Serial': gpu.serial,
+                    'Total memory': gpu.memoryTotal}
+            if usage:
+                info.update({'Free memory': f'{gpu.memoryFree} MB',
+                            'Used memory': f'{gpu.memoryUsed} MB',
+                            'Current load': f'{gpu.load * 100:.2f}%',
+                            'Temperature': f'{gpu.temperature}°C'})
+            info_all[f'GPU{i}'] = info
+        info_all['Num GPUs'] = len(info_all) - 1
+    except Exception as exc:
+        msg = """
+        Error occurred in extracting gpu info. 
+        Check GPU Drivers and Installation
+        """
+        raise GPUtilException(msg) from exc
     return info_all
 
 
